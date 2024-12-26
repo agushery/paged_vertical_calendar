@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide DateUtils;
 import 'package:flutter/rendering.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+import 'package:intl/intl.dart';
 import 'package:paged_vertical_calendar/utils/date_models.dart';
 import 'package:paged_vertical_calendar/utils/date_utils.dart';
 
@@ -47,6 +48,10 @@ class PagedVerticalCalendar extends StatefulWidget {
     this.weekdaysToHide = const [],
     this.reverse = false,
     this.dayAspectRatio = 1,
+    this.locale,
+    this.monthStyle,
+    this.dayStyle,
+    this.dateNowStyle,
   }) : this.initialDate = initialDate ?? DateTime.now().removeTime();
 
   /// the [DateTime] to start the calendar from, if no [startDate] is provided
@@ -122,6 +127,18 @@ class PagedVerticalCalendar extends StatefulWidget {
   ///
   /// Default is 1
   final double dayAspectRatio;
+
+  /// use to locale month name
+  final String? locale;
+
+  /// use to set text style month
+  final TextStyle? monthStyle;
+
+  /// use to set text style day
+  final TextStyle? dayStyle;
+
+  /// use to set text style date now
+  final TextStyle? dateNowStyle;
 
   @override
   _PagedVerticalCalendarState createState() => _PagedVerticalCalendarState();
@@ -281,6 +298,10 @@ class _PagedVerticalCalendarState extends State<PagedVerticalCalendar> {
                         startWeekWithSunday: widget.startWeekWithSunday,
                         weekDaysToHide: widget.weekdaysToHide,
                         dayAspectRatio: widget.dayAspectRatio,
+                        locale: widget.locale,
+                        monthStyle: widget.monthStyle,
+                        dateNowStyle: widget.dateNowStyle,
+                        dateStyle: widget.dayStyle,
                       );
                     },
                   ),
@@ -301,6 +322,10 @@ class _PagedVerticalCalendarState extends State<PagedVerticalCalendar> {
                       startWeekWithSunday: widget.startWeekWithSunday,
                       weekDaysToHide: widget.weekdaysToHide,
                       dayAspectRatio: widget.dayAspectRatio,
+                      locale: widget.locale,
+                      monthStyle: widget.monthStyle,
+                      dateNowStyle: widget.dateNowStyle,
+                      dateStyle: widget.dayStyle,
                     );
                   },
                 ),
@@ -329,6 +354,10 @@ class _MonthView extends StatelessWidget {
     required this.weekDaysToHide,
     required this.startWeekWithSunday,
     this.dayAspectRatio = 1,
+    this.locale,
+    this.monthStyle,
+    this.dateStyle,
+    this.dateNowStyle,
   });
 
   final Month month;
@@ -338,6 +367,10 @@ class _MonthView extends StatelessWidget {
   final bool startWeekWithSunday;
   final List<int> weekDaysToHide;
   final double dayAspectRatio;
+  final String? locale;
+  final TextStyle? monthStyle;
+  final TextStyle? dateStyle;
+  final TextStyle? dateNowStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -354,8 +387,9 @@ class _MonthView extends StatelessWidget {
         /// display the default month header if none is provided
         monthBuilder?.call(context, month.month, month.year) ??
             _DefaultMonthView(
-              month: month.month,
-              year: month.year,
+              month: DateTime(month.year, month.month),
+              locale: locale,
+              monthStyle: monthStyle,
             ),
         GridView.builder(
           addRepaintBoundaries: false,
@@ -377,7 +411,11 @@ class _MonthView extends StatelessWidget {
               child: InkWell(
                 onTap: onDayPressed == null ? null : () => onDayPressed!(date),
                 child: dayBuilder?.call(context, date) ??
-                    _DefaultDayView(date: date),
+                    _DefaultDayView(
+                      date: date,
+                      dateNowStyle: dateNowStyle,
+                      dateStyle: dateStyle,
+                    ),
               ),
             );
           },
@@ -389,33 +427,23 @@ class _MonthView extends StatelessWidget {
 }
 
 class _DefaultMonthView extends StatelessWidget {
-  final int month;
-  final int year;
+  final DateTime month;
+  final TextStyle? monthStyle;
+  final String? locale;
 
-  _DefaultMonthView({required this.month, required this.year});
-
-  final months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
+  _DefaultMonthView({
+    required this.month,
+    this.monthStyle,
+    this.locale,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Text(
-        '${months[month - 1]} $year',
-        style: Theme.of(context).textTheme.titleLarge,
+        DateFormat.yMMMM(locale?.toString() ?? 'id').format(month),
+        style: monthStyle,
       ),
     );
   }
@@ -423,14 +451,23 @@ class _DefaultMonthView extends StatelessWidget {
 
 class _DefaultDayView extends StatelessWidget {
   final DateTime date;
+  final TextStyle? dateStyle;
+  final TextStyle? dateNowStyle;
 
-  _DefaultDayView({required this.date});
+  _DefaultDayView({
+    required this.date,
+    this.dateStyle,
+    this.dateNowStyle,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Text(
         date.day.toString(),
+        style: date.isSameDay(DateTime.now()) && dateNowStyle != null
+            ? dateNowStyle
+            : dateStyle,
       ),
     );
   }
